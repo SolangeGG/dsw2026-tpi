@@ -7,6 +7,8 @@ using Dsw2026Tpi.CrossCutting.Resources;
 using Dsw2026Tpi.Data.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
+using Dsw2026Tpi.Domain.Entities;
+using Dsw2026Tpi.Domain.Interfaces;
 
 namespace Dsw2026Tpi.Application.Services;
 
@@ -17,17 +19,21 @@ public class AuthenticationService : IAuthenticationService
     private readonly RoleManager<IdentityRole> _roleManager;
     private readonly JwtService _jwtService;
     private readonly ILogger<AuthenticationService> _logger;
+    private readonly IPersistence _persistence;
 
     public AuthenticationService(UserManager<ApplicationUser> userManager,
         ISignInService signInManager,
         RoleManager<IdentityRole> roleManager,
         JwtService jwtService,
+        IPersistence persistence,
         ILogger<AuthenticationService> logger)
+        
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _roleManager = roleManager;
         _jwtService = jwtService;
+        _persistence = persistence;
         _logger = logger;
     }
 
@@ -53,9 +59,27 @@ public class AuthenticationService : IAuthenticationService
         );
     }
 
-    public async Task<LoginPatientModel.Response> LoginPatient(LoginPatientModel.Response request)
+    public async Task<LoginPatientModel.Response> LoginPatient(LoginPatientModel.Request request)
     {
-        throw new NotImplementedException();
+        if (!request.Email.IsEmailValid())
+            throw new ValidationException().WithDetail(nameof(request.Email), "invalid_format");
+
+        var dniLength = request.Dni.ToString().Length;
+        if (dniLength is not (7 or 8))
+            throw new ValidationException().WithDetail(nameof(request.Dni), "must_have_7_or_8_digits");
+
+        var patient = await _persistence.First<Patient>(p => p.Email == request.Email && p.Dni == request.Dni);
+
+        if (patient is null)
+        {
+            patient = new Patient(request.Email, request.Dni, request.Email);
+            await _persistence.Add(patient);
+            _logger.LogInformation("Paciente registrado automáticamente: {Email}", request.Email);
+        }
+
+        var token = _jwtService.GenerateToken(patient.Email, Roles.Patient);
+
+        return new LoginPatientModel.Response(token, Roles.Patient);
     }
 
     public async Task<RegisterModel.Response> Register(RegisterModel.Request request)
