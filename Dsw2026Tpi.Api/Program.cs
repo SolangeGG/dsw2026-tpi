@@ -2,6 +2,7 @@ using Dsw2026Tpi.Api.Configurations;
 using Dsw2026Tpi.Api.Middlewares;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Serilog;
 
 namespace Dsw2026Tpi.Api;
@@ -31,6 +32,17 @@ public class Program
             builder.Services.AddAppDependencies();
             builder.Services.AddControllers();
             builder.Services.AddHealthChecks();
+            builder.Services.AddRateLimiter(options =>
+            {
+                options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+                options.AddFixedWindowLimiter("fixed", limiterOptions =>
+                {
+                    limiterOptions.PermitLimit = 20;
+                    limiterOptions.Window = TimeSpan.FromMinutes(1);
+                    limiterOptions.QueueLimit = 0;
+                });
+            });
 
             var app = builder.Build();
 
@@ -46,6 +58,7 @@ public class Program
                 app.UseSwaggerUI();
             }
 
+            app.UseRateLimiter();
             app.UseAuthentication();
             app.UseAuthorization();
             app.UseCors();

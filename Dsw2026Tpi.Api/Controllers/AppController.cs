@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Dsw2026Tpi.Api.Controllers;
 
@@ -7,6 +8,7 @@ namespace Dsw2026Tpi.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api")]
+[EnableRateLimiting("fixed")]
 public abstract class AppController : ControllerBase
 {
 }
