@@ -45,7 +45,7 @@ namespace Dsw2026Tpi.Application.Services;
     public async Task Delete(Guid id)
     {
         var speciality = await _persistence.GetById<Speciality>(id);
-        if (speciality is null || !speciality.Deleted)
+        if (speciality is null || speciality.Deleted)
             throw new EntityNotFoundException(nameof(Speciality));
 
         speciality.Delete();
