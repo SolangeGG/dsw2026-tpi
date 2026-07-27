@@ -41,4 +41,12 @@ public class DoctorController : AppController
         var doctor = await _service.Create(request);
         return CreatedAtAction(nameof(GetAll), new { id = doctor.Id }, doctor);
     }
+    [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        await _service.Delete(id);
+        return NoContent();
+    }
 }
