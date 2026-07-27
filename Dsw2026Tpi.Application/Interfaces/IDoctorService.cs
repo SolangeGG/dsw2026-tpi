@@ -6,4 +6,5 @@ namespace Dsw2026Tpi.Application.Interfaces;
 public interface IDoctorService
 {
     Task<Pagination<DoctorModel.Response>> GetAll(int pageSize, int pageIndex, string? name = null);
+    Task<IEnumerable<DoctorModel.AvailabilityResponse>> GetAvailabilities(Guid doctorId);
 }
