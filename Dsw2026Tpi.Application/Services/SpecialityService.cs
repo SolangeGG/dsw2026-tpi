@@ -89,6 +89,29 @@ namespace Dsw2026Tpi.Application.Services;
 
         if (hasErrors) throw exception;
     }
+    public async Task<SpecialityModel.Response> Update(Guid id, SpecialityModel.Request request)
+    {
+        Validate(request);
+
+        var speciality = await _persistence.GetById<Speciality>(id);
+        if (speciality is null || speciality.Deleted)
+            throw new EntityNotFoundException(nameof(Speciality));
+
+        await EnsureNameIsUnique(request.Name, id);
+
+        speciality.Update(request.Name, request.Description);
+        await _persistence.Update(speciality);
+
+        return new SpecialityModel.Response(speciality.Id, speciality.Name, speciality.Description);
+    }
+    private async Task EnsureNameIsUnique(string name, Guid? excludeId = null)
+    {
+        var existing = await _persistence.First<Speciality>(
+            s => !s.Deleted && s.Name.ToLower() == name.ToLower());
+
+        if (existing is not null && existing.Id != excludeId)
+            throw new ConflictException(nameof(ErrorCodes.SPECIALITY_CONFLICT), ErrorCodes.SPECIALITY_CONFLICT);
+    }
 
 }
 
