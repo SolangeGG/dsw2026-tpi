@@ -26,12 +26,10 @@ namespace Dsw2026Tpi.Application.Services;
                 throw new ValidationException().WithDetail(nameof(name), "invalid_length");
             }
 
-            var specialities = await _persistence.Paginate<Speciality, string>(
-                pageSize, pageIndex,
-                s => s.IsActive && (string.IsNullOrWhiteSpace(name) || s.Name.Contains(name)),
-                s => s.Name);
+        var specialities = await _persistence.Paginate<Speciality, string>( pageSize, pageIndex, s => !s.Deleted &&
+     (string.IsNullOrWhiteSpace(name) || s.Name.Contains(name)),s => s.Name);
 
-            return specialities.Map(s => new SpecialityModel.Response(s.Id, s.Name, s.Description));
+        return specialities.Map(s => new SpecialityModel.Response(s.Id, s.Name, s.Description));
         }
 
     public async Task<SpecialityModel.Response> Create(SpecialityModel.Request request)
@@ -44,11 +42,19 @@ namespace Dsw2026Tpi.Application.Services;
 
         return new SpecialityModel.Response(speciality.Id, speciality.Name, speciality.Description);
     }
+    public async Task Delete(Guid id)
+    {
+        var speciality = await _persistence.GetById<Speciality>(id);
+        if (speciality is null || !speciality.Deleted)
+            throw new EntityNotFoundException(nameof(Speciality));
 
+        speciality.Delete();
+        await _persistence.Update(speciality);
+    }
     private async Task EnsureNameIsUnique(string name)
     {
         var existing = await _persistence.First<Speciality>(
-            s => s.IsActive && s.Name.ToLower() == name.ToLower());
+            s => s.Deleted && s.Name.ToLower() == name.ToLower());
 
         if (existing is not null)
             throw new ConflictException(nameof(ErrorCodes.SPECIALITY_CONFLICT), ErrorCodes.SPECIALITY_CONFLICT);

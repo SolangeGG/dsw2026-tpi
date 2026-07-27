@@ -10,6 +10,7 @@ namespace Dsw2026Tpi.Application.Interfaces
     {
         Task<Pagination<SpecialityModel.Response>> GetAll(int pageSize, int pageIndex, string? name = null);
         Task<SpecialityModel.Response> Create(SpecialityModel.Request request);
+        Task Delete(Guid id);
 
     }
 }
