@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using Dsw2026Tpi.Application.Dtos;
 using Dsw2026Tpi.Application.Interfaces;
 using Dsw2026Tpi.CrossCutting.Identity;
 using Microsoft.AspNetCore.Authorization;
@@ -27,6 +28,15 @@ namespace Dsw2026Tpi.Api.Controllers;
     {
         var specialities = await _service.GetAll(pageSize, pageIndex, name);
         return Ok(specialities);
+    }
+
+    [HttpPost]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Create([FromBody] SpecialityModel.Request request)
+    {
+        var speciality = await _service.Create(request);
+        return CreatedAtAction(nameof(GetAll), new { id = speciality.Id }, speciality);
     }
 }
 

@@ -5,6 +5,8 @@ public class Speciality: EntityBase
     public string Name { get; init; }
     public string Description { get; init; }
 
+    public bool IsActive { get; private set; }
+
     #region Constructor for EF
 #pragma warning disable CS8618
     private Speciality() { }
@@ -15,5 +17,12 @@ public class Speciality: EntityBase
     {
         Name = name;
         Description = description;
+        IsActive = true;
     }
+
+    public void Deactivate()
+    {
+        IsActive = false;
+    }
+
 }
