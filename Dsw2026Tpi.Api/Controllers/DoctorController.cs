@@ -1,4 +1,5 @@
-﻿using Dsw2026Tpi.Application.Interfaces;
+﻿using Dsw2026Tpi.Application.Dtos;
+using Dsw2026Tpi.Application.Interfaces;
 using Dsw2026Tpi.CrossCutting.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -30,5 +31,14 @@ public class DoctorController : AppController
     {
         var availabilities = await _service.GetAvailabilities(id);
         return Ok(availabilities);
+    }
+
+    [HttpPost]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Create([FromBody] DoctorModel.Request request)
+    {
+        var doctor = await _service.Create(request);
+        return CreatedAtAction(nameof(GetAll), new { id = doctor.Id }, doctor);
     }
 }

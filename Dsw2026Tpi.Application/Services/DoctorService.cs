@@ -53,4 +53,44 @@ public class DoctorService : IDoctorService
         DayOfWeek.Sunday => "DOMINGO",
         _ => throw new ArgumentOutOfRangeException(nameof(day))
     };
+
+    public async Task<DoctorModel.Response> Create(DoctorModel.Request request)
+    {
+        Validate(request);
+
+        var speciality = await _persistence.GetById<Speciality>(request.SpecialityId);
+        if (speciality is null || speciality.Deleted)
+            throw new ValidationException().WithDetail(nameof(request.SpecialityId), "not_found");
+
+        var doctor = new Doctor(request.Name, request.LicenseNumber, speciality);
+        await _persistence.Add(doctor);
+
+        return new DoctorModel.Response(doctor.Id, doctor.Name, doctor.LicenseNumber,
+            new DoctorModel.SpecialityDto(speciality.Id, speciality.Name));
+    }
+
+    private static void Validate(DoctorModel.Request request)
+    {
+        var exception = new ValidationException();
+        var hasErrors = false;
+
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            exception.WithDetail(nameof(request.Name), "required");
+            hasErrors = true;
+        }
+        else if (request.Name.Length is < 3 or > 100)
+        {
+            exception.WithDetail(nameof(request.Name), "invalid_length");
+            hasErrors = true;
+        }
+
+        if (string.IsNullOrWhiteSpace(request.LicenseNumber))
+        {
+            exception.WithDetail(nameof(request.LicenseNumber), "required");
+            hasErrors = true;
+        }
+
+        if (hasErrors) throw exception;
+    }
 }
