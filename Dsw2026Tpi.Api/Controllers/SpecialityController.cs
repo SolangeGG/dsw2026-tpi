@@ -47,5 +47,14 @@ namespace Dsw2026Tpi.Api.Controllers;
         await _service.Delete(id);
         return NoContent();
     }
+    [HttpPut("{id}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Update(Guid id, [FromBody] SpecialityModel.Request request)
+    {
+        var speciality = await _service.Update(id, request);
+        return Ok(speciality);
+    }
 }
 
