@@ -103,4 +103,22 @@ public class DoctorService : IDoctorService
         doctor.Deactivate();
         await _persistence.Update(doctor);
     }
+    public async Task<DoctorModel.Response> Update(Guid id, DoctorModel.Request request)
+    {
+        Validate(request);
+
+        var doctor = await _persistence.GetById<Doctor>(id);
+        if (doctor is null || !doctor.IsActive)
+            throw new EntityNotFoundException(nameof(Doctor));
+
+        var speciality = await _persistence.GetById<Speciality>(request.SpecialityId);
+        if (speciality is null || speciality.Deleted)
+            throw new ValidationException().WithDetail(nameof(request.SpecialityId), "not_found");
+
+        doctor.Update(request.Name, request.LicenseNumber, speciality);
+        await _persistence.Update(doctor);
+
+        return new DoctorModel.Response(doctor.Id, doctor.Name, doctor.LicenseNumber,
+            new DoctorModel.SpecialityDto(speciality.Id, speciality.Name));
+    }
 }
