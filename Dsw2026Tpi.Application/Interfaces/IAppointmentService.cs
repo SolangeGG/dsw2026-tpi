@@ -8,4 +8,5 @@ namespace Dsw2026Tpi.Application.Interfaces;
 public interface IAppointmentService
 {
     Task<AppointmentModel.Response> Create(AppointmentModel.Request request);
+    Task<IEnumerable<AppointmentModel.PatientResponse>> GetByPatientDni(long dni);
 }

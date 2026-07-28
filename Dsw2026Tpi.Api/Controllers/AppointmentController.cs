@@ -26,4 +26,13 @@ public class AppointmentController : AppController
         var appointment = await _service.Create(request);
         return StatusCode(StatusCodes.Status201Created, appointment);
     }
+
+    [HttpGet("patient")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetByPatient([FromQuery] long dni)
+    {
+        var appointments = await _service.GetByPatientDni(dni);
+        return Ok(appointments);
+    }
 }

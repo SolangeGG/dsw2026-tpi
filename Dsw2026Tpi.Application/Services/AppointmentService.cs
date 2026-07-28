@@ -86,4 +86,29 @@ public class AppointmentService : IAppointmentService
 
         if (hasErrors) throw exception;
     }
+    public async Task<IEnumerable<AppointmentModel.PatientResponse>> GetByPatientDni(long dni)
+    {
+        var patient = await _persistence.First<Patient>(p => p.Dni == dni);
+        if (patient is null)
+            throw new EntityNotFoundException(nameof(Patient));
+
+        var appointments = await _persistence.GetFiltered<Appointment>(
+            a => a.PatientId == patient.Id && a.Status == AppointmentStatus.Booked,
+            "AvailabilitySlot.Doctor.Speciality");
+
+        var ordered = (appointments ?? Enumerable.Empty<Appointment>())
+            .OrderBy(a => a.AvailabilitySlot!.SlotDate)
+            .ThenBy(a => a.AvailabilitySlot!.StartTime);
+
+        return ordered.Select(a => new AppointmentModel.PatientResponse(
+            a.Id,
+            a.AvailabilitySlot!.Doctor!.Name,
+            a.AvailabilitySlot.Doctor.Speciality?.Name,
+            a.AvailabilitySlot.SlotDate.ToString("yyyy-MM-dd"),
+            a.AvailabilitySlot.StartTime.ToString(@"hh\:mm"),
+            a.AvailabilitySlot.EndTime.ToString(@"hh\:mm"),
+            a.Reason,
+            a.Status.ToString().ToUpperInvariant()
+        )).ToList();
+    }
 }
