@@ -111,4 +111,23 @@ public class AppointmentService : IAppointmentService
             a.Status.ToString().ToUpperInvariant()
         )).ToList();
     }
+    public async Task Cancel(Guid id)
+    {
+        var appointment = await _persistence.GetById<Appointment>(id);
+        if (appointment is null)
+            throw new EntityNotFoundException(nameof(Appointment));
+
+        if (appointment.Status != AppointmentStatus.Booked)
+            throw new ValidationException().WithDetail(nameof(appointment.Status), "not_cancellable");
+
+        appointment.Cancel();
+        await _persistence.Update(appointment);
+
+        var slot = await _persistence.GetById<AvailabilitySlot>(appointment.AvailabilitySlotId);
+        if (slot is not null)
+        {
+            slot.Release();
+            await _persistence.Update(slot);
+        }
+    }
 }

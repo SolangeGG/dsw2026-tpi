@@ -35,4 +35,13 @@ public class AppointmentController : AppController
         var appointments = await _service.GetByPatientDni(dni);
         return Ok(appointments);
     }
+    [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Cancel(Guid id)
+    {
+        await _service.Cancel(id);
+        return NoContent();
+    }
 }

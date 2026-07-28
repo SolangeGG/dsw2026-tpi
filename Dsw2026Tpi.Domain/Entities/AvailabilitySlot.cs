@@ -50,5 +50,9 @@ public class AvailabilitySlot : EntityBase
     {
         Status = SlotStatus.Booked;
     }
+    public void Release()
+    {
+        Status = SlotStatus.Available;
+    }
 }
 
