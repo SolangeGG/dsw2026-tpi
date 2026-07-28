@@ -22,6 +22,7 @@ public class AvailabilitySlot : EntityBase
     public TimeSpan EndTime { get; private set; }
     public SlotStatus Status { get; private set; }
     public bool Deleted { get; private set; }
+    public byte[]? RowVersion { get; private set; }
 
     #region Constructor for EF
 #pragma warning disable CS8618
@@ -44,6 +45,10 @@ public class AvailabilitySlot : EntityBase
     public void Delete()
     {
         Deleted = true;
+    }
+    public void Book()
+    {
+        Status = SlotStatus.Booked;
     }
 }
 
