@@ -140,6 +140,47 @@ namespace Dsw2026Tpi.Application.Services;
             }
         }
     }
+    public async Task Update(AvailabilityModel.Request request)
+    {
+        var doctor = await ValidateAndGetDoctor(request);
+        var parsedDays = ParseDays(request.Days);
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        await ClearCurrentMonth(doctor.Id, today);
+
+        foreach (var (dayOfWeek, startTime, endTime) in parsedDays)
+        {
+            var rule = new AvailabilityRule(doctor.Id, today.Month, today.Year, dayOfWeek, startTime, endTime);
+            await _persistence.Add(rule);
+
+            await GenerateSlots(doctor.Id, rule.Id, dayOfWeek, startTime, endTime, today);
+        }
+    }
+
+    private async Task ClearCurrentMonth(Guid doctorId, DateOnly today)
+    {
+        var rules = await _persistence.GetFiltered<AvailabilityRule>(
+            r => r.DoctorId == doctorId && r.Month == today.Month && r.Year == today.Year && !r.Deleted);
+
+        foreach (var rule in rules ?? Enumerable.Empty<AvailabilityRule>())
+        {
+            rule.Delete();
+            await _persistence.Update(rule);
+        }
+
+        var lastDayOfMonth = new DateOnly(today.Year, today.Month, DateTime.DaysInMonth(today.Year, today.Month));
+
+        var slots = await _persistence.GetFiltered<AvailabilitySlot>(
+            s => s.DoctorId == doctorId && s.SlotDate >= today && s.SlotDate <= lastDayOfMonth &&
+                 s.Status == SlotStatus.Available && !s.Deleted);
+
+        foreach (var slot in slots ?? Enumerable.Empty<AvailabilitySlot>())
+        {
+            slot.Delete();
+            await _persistence.Update(slot);
+        }
+    }
 
 }
 
