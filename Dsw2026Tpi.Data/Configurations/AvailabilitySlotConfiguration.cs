@@ -22,6 +22,8 @@ namespace Dsw2026Tpi.Data.Configurations;
 
         builder.HasIndex(s => new { s.DoctorId, s.SlotDate, s.StartTime })
             .IsUnique();
-      }
+        builder.Property(s => s.RowVersion)
+            .IsRowVersion();
+    }
     }
 
