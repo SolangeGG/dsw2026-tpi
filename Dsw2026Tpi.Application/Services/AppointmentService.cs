@@ -155,4 +155,37 @@ public class AppointmentService : IAppointmentService
             a.Status.ToString().ToUpperInvariant()
         )).ToList();
     }
+    public async Task<Pagination<AppointmentModel.AdminResponse>> Search(
+    Guid? specialtyId, Guid? doctorId, long? dni, string? date, int pageSize, int pageIndex)
+    {
+        DateOnly? parsedDate = null;
+        if (!string.IsNullOrWhiteSpace(date))
+        {
+            if (!DateOnly.TryParseExact(date, "yyyy-MM-dd", out var value))
+                throw new ValidationException().WithDetail(nameof(date), "invalid_format");
+            parsedDate = value;
+        }
+
+        var appointments = await _persistence.Paginate<Appointment, DateOnly>(
+            pageSize, pageIndex,
+            a => (doctorId == null || a.AvailabilitySlot!.DoctorId == doctorId) &&
+                 (specialtyId == null || a.AvailabilitySlot!.Doctor!.SpecialityId == specialtyId) &&
+                 (dni == null || a.Patient!.Dni == dni) &&
+                 (parsedDate == null || a.AvailabilitySlot!.SlotDate == parsedDate),
+            a => a.AvailabilitySlot!.SlotDate,
+            "AvailabilitySlot.Doctor.Speciality", "Patient");
+
+        return appointments.Map(a => new AppointmentModel.AdminResponse(
+            a.Id,
+            a.AvailabilitySlot!.Doctor!.Name,
+            a.AvailabilitySlot.Doctor.Speciality?.Name,
+            a.Patient!.Dni,
+            a.Patient.Name,
+            a.AvailabilitySlot.SlotDate.ToString("yyyy-MM-dd"),
+            a.AvailabilitySlot.StartTime.ToString(@"hh\:mm"),
+            a.AvailabilitySlot.EndTime.ToString(@"hh\:mm"),
+            a.Reason,
+            a.Status.ToString().ToUpperInvariant()
+        ));
+    }
 }
