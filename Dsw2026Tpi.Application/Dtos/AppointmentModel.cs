@@ -11,5 +11,8 @@ public record AppointmentModel
     public record Response(Guid Id, Guid DoctorId, Guid AvailabilityId, long PatientDni, string Reason, string Status);
     public record PatientResponse(Guid Id, string DoctorName, string? SpecialityName,
         string Date, string StartTime, string EndTime, string Reason, string Status);
+    public record AdminResponse(Guid Id, string DoctorName, string? SpecialityName,
+    long PatientDni, string PatientName, string Date, string StartTime, string EndTime,
+    string Reason, string Status);
 }
 

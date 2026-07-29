@@ -130,4 +130,29 @@ public class AppointmentService : IAppointmentService
             await _persistence.Update(slot);
         }
     }
+    public async Task<IEnumerable<AppointmentModel.AdminResponse>> GetByDate(string date)
+    {
+        if (!DateOnly.TryParseExact(date, "yyyy-MM-dd", out var parsedDate))
+            throw new ValidationException().WithDetail(nameof(date), "invalid_format");
+
+        var appointments = await _persistence.GetFiltered<Appointment>(
+            a => a.AvailabilitySlot!.SlotDate == parsedDate,
+            "AvailabilitySlot.Doctor.Speciality", "Patient");
+
+        var ordered = (appointments ?? Enumerable.Empty<Appointment>())
+            .OrderBy(a => a.AvailabilitySlot!.StartTime);
+
+        return ordered.Select(a => new AppointmentModel.AdminResponse(
+            a.Id,
+            a.AvailabilitySlot!.Doctor!.Name,
+            a.AvailabilitySlot.Doctor.Speciality?.Name,
+            a.Patient!.Dni,
+            a.Patient.Name,
+            a.AvailabilitySlot.SlotDate.ToString("yyyy-MM-dd"),
+            a.AvailabilitySlot.StartTime.ToString(@"hh\:mm"),
+            a.AvailabilitySlot.EndTime.ToString(@"hh\:mm"),
+            a.Reason,
+            a.Status.ToString().ToUpperInvariant()
+        )).ToList();
+    }
 }
