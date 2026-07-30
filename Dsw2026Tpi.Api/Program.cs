@@ -1,7 +1,12 @@
 using Dsw2026Tpi.Api.Configurations;
 using Dsw2026Tpi.Api.Middlewares;
+using Dsw2026Tpi.CrossCutting.Models;
+using Dsw2026Tpi.CrossCutting.Resources;
 using Serilog;
+using System.Text.Json;
 using System.Threading.RateLimiting;
+
+
 
 namespace Dsw2026Tpi.Api;
 
@@ -31,6 +36,10 @@ public class Program
             builder.Services.AddControllers();
             builder.Services.AddHealthChecks();
 
+            var rateLimitingOptions = builder.Configuration
+    .GetSection(RateLimitingOptions.SectionName)
+    .Get<RateLimitingOptions>() ?? new RateLimitingOptions();
+
             builder.Services.AddRateLimiter(options =>
             {
                 options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -40,10 +49,60 @@ public class Program
                         partitionKey: context.User.Identity?.Name ?? context.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
                         factory: _ => new FixedWindowRateLimiterOptions
                         {
-                            PermitLimit = 20,
-                            Window = TimeSpan.FromMinutes(1),
+                            PermitLimit = rateLimitingOptions.Global.PermitLimit,
+                            Window = TimeSpan.FromSeconds(rateLimitingOptions.Global.WindowSeconds),
                             QueueLimit = 0
                         }));
+
+                options.AddPolicy("AdminLogin", context =>
+                    RateLimitPartition.GetFixedWindowLimiter(
+                        partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                        factory: _ => new FixedWindowRateLimiterOptions
+                        {
+                            PermitLimit = rateLimitingOptions.AdminLogin.PermitLimit,
+                            Window = TimeSpan.FromSeconds(rateLimitingOptions.AdminLogin.WindowSeconds),
+                            QueueLimit = 0
+                        }));
+
+                options.AddPolicy("PatientLogin", context =>
+                    RateLimitPartition.GetFixedWindowLimiter(
+                        partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                        factory: _ => new FixedWindowRateLimiterOptions
+                        {
+                            PermitLimit = rateLimitingOptions.PatientLogin.PermitLimit,
+                            Window = TimeSpan.FromSeconds(rateLimitingOptions.PatientLogin.WindowSeconds),
+                            QueueLimit = 0
+                        }));
+
+                options.AddPolicy("AppointmentBooking", context =>
+                    RateLimitPartition.GetFixedWindowLimiter(
+                        partitionKey: context.User.Identity?.Name ?? context.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+                        factory: _ => new FixedWindowRateLimiterOptions
+                        {
+                            PermitLimit = rateLimitingOptions.AppointmentBooking.PermitLimit,
+                            Window = TimeSpan.FromSeconds(rateLimitingOptions.AppointmentBooking.WindowSeconds),
+                            QueueLimit = 0
+                        }));
+
+                options.OnRejected = async (context, cancellationToken) =>
+                {
+                    var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                    var endpoint = context.HttpContext.GetEndpoint()?.DisplayName ?? context.HttpContext.Request.Path.ToString();
+                    var origin = context.HttpContext.User.Identity?.Name
+                        ?? context.HttpContext.Connection.RemoteIpAddress?.ToString()
+                        ?? "desconocido";
+
+                    logger.LogWarning("Rate limit excedido: endpoint {Endpoint}, origen {Origin}", endpoint, origin);
+
+                    var error = new ErrorResponse(nameof(ErrorCodes.RATE_LIMIT_EXCEEDED), ErrorCodes.RATE_LIMIT_EXCEEDED);
+                    var json = JsonSerializer.Serialize(error, new JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                    });
+
+                    context.HttpContext.Response.ContentType = "application/json";
+                    await context.HttpContext.Response.WriteAsync(json, cancellationToken);
+                };
             });
 
             var app = builder.Build();

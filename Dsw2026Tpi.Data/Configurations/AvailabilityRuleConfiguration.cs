@@ -16,5 +16,9 @@ public class AvailabilityRuleConfiguration : IEntityTypeConfiguration<Availabili
         builder.HasOne(a => a.Doctor)
             .WithMany()
             .HasForeignKey(a => a.DoctorId);
+
+        builder.HasIndex(a => new { a.DoctorId, a.Year, a.Month, a.DayOfWeek, a.StartTime, a.EndTime })
+    .IsUnique()
+    .HasFilter("[Deleted] = 0");
     }
 }

@@ -17,11 +17,13 @@ namespace Dsw2026Tpi.Application.Services;
     {
     private readonly IPersistence _persistence;
     private readonly ILogger<AvailabilityService> _logger;
+    private readonly IHolidayProvider _holidayProvider;
 
-    public AvailabilityService(IPersistence persistence, ILogger<AvailabilityService> logger)
+    public AvailabilityService(IPersistence persistence, ILogger<AvailabilityService> logger, IHolidayProvider holidayProvider)
     {
         _persistence = persistence;
         _logger = logger;
+        _holidayProvider = holidayProvider;
     }
 
     public async Task Create(AvailabilityModel.Request request)
@@ -53,7 +55,7 @@ namespace Dsw2026Tpi.Application.Services;
     private async Task<Doctor> ValidateAndGetDoctor(AvailabilityModel.Request request)
     {
         var doctor = await _persistence.GetById<Doctor>(request.DoctorId);
-        if (doctor is null || !doctor.IsActive)
+        if (doctor is null || doctor.Deleted)
             throw new ValidationException().WithDetail(nameof(request.DoctorId), "not_found");
 
         if (request.Days is null || request.Days.Count == 0)
@@ -134,11 +136,12 @@ namespace Dsw2026Tpi.Application.Services;
         for (var date = today; date <= lastDayOfMonth; date = date.AddDays(1))
         {
             if (date.DayOfWeek != dayOfWeek) continue;
+            if (_holidayProvider.IsHoliday(date)) continue;
 
             for (var slotStart = startTime; slotStart < endTime; slotStart = slotStart.Add(TimeSpan.FromMinutes(30)))
             {
                 var existingSlot = await _persistence.First<AvailabilitySlot>(
-                    s => s.DoctorId == doctorId && s.SlotDate == date && s.StartTime == slotStart);
+    s => s.DoctorId == doctorId && s.SlotDate == date && s.StartTime == slotStart && !s.Deleted);
 
                 if (existingSlot is not null) continue;
 

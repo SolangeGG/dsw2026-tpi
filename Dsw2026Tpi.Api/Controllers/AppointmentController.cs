@@ -3,6 +3,7 @@ using Dsw2026Tpi.Application.Interfaces;
 using Dsw2026Tpi.CrossCutting.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Dsw2026Tpi.Api.Controllers;
 
@@ -18,6 +19,7 @@ public class AppointmentController : AppController
     }
 
     [HttpPost]
+    [EnableRateLimiting("AppointmentBooking")]
     [Authorize(Policy = Policies.PatientPolicy)]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

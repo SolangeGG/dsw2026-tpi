@@ -28,7 +28,7 @@ public class AppointmentService : IAppointmentService
         Validate(request);
 
         var doctor = await _persistence.GetById<Doctor>(request.DoctorId);
-        if (doctor is null || !doctor.IsActive)
+        if (doctor is null || doctor.Deleted)
             throw new ValidationException().WithDetail(nameof(request.DoctorId), "not_found");
 
         var patient = await _persistence.First<Patient>(p => p.Dni == request.Patient.Dni);
