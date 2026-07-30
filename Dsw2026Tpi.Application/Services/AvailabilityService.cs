@@ -1,13 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Globalization;
-using Dsw2026Tpi.Application.Dtos;
+﻿using Dsw2026Tpi.Application.Dtos;
 using Dsw2026Tpi.Application.Interfaces;
 using Dsw2026Tpi.CrossCutting.Exceptions;
 using Dsw2026Tpi.CrossCutting.Resources;
 using Dsw2026Tpi.Domain.Entities;
 using Dsw2026Tpi.Domain.Interfaces;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Text;
 
 
 namespace Dsw2026Tpi.Application.Services;
@@ -15,10 +16,14 @@ namespace Dsw2026Tpi.Application.Services;
     public class AvailabilityService : IAvailabilityService
     {
     private readonly IPersistence _persistence;
+    private readonly ILogger<AvailabilityService> _logger;
+    private readonly IHolidayProvider _holidayProvider;
 
-    public AvailabilityService(IPersistence persistence)
+    public AvailabilityService(IPersistence persistence, ILogger<AvailabilityService> logger, IHolidayProvider holidayProvider)
     {
         _persistence = persistence;
+        _logger = logger;
+        _holidayProvider = holidayProvider;
     }
 
     public async Task Create(AvailabilityModel.Request request)
@@ -40,13 +45,17 @@ namespace Dsw2026Tpi.Application.Services;
             var rule = new AvailabilityRule(doctor.Id, today.Month, today.Year, dayOfWeek, startTime, endTime);
             await _persistence.Add(rule);
 
+            _logger.LogInformation(
+                "Disponibilidad cargada: médico {DoctorId}, día {DayOfWeek}, horario {StartTime}-{EndTime}",
+                doctor.Id, dayOfWeek, startTime, endTime);
+
             await GenerateSlots(doctor.Id, rule.Id, dayOfWeek, startTime, endTime, today);
         }
     }
     private async Task<Doctor> ValidateAndGetDoctor(AvailabilityModel.Request request)
     {
         var doctor = await _persistence.GetById<Doctor>(request.DoctorId);
-        if (doctor is null || !doctor.IsActive)
+        if (doctor is null || doctor.Deleted)
             throw new ValidationException().WithDetail(nameof(request.DoctorId), "not_found");
 
         if (request.Days is null || request.Days.Count == 0)
@@ -122,15 +131,17 @@ namespace Dsw2026Tpi.Application.Services;
         TimeSpan startTime, TimeSpan endTime, DateOnly today)
     {
         var lastDayOfMonth = new DateOnly(today.Year, today.Month, DateTime.DaysInMonth(today.Year, today.Month));
+        var slotsCreated = 0;
 
         for (var date = today; date <= lastDayOfMonth; date = date.AddDays(1))
         {
             if (date.DayOfWeek != dayOfWeek) continue;
+            if (_holidayProvider.IsHoliday(date)) continue;
 
             for (var slotStart = startTime; slotStart < endTime; slotStart = slotStart.Add(TimeSpan.FromMinutes(30)))
             {
                 var existingSlot = await _persistence.First<AvailabilitySlot>(
-                    s => s.DoctorId == doctorId && s.SlotDate == date && s.StartTime == slotStart);
+    s => s.DoctorId == doctorId && s.SlotDate == date && s.StartTime == slotStart && !s.Deleted);
 
                 if (existingSlot is not null) continue;
 
@@ -139,6 +150,10 @@ namespace Dsw2026Tpi.Application.Services;
                 await _persistence.Add(slot);
             }
         }
+
+        _logger.LogInformation(
+          "Turnos generados para médico {DoctorId}: {SlotsCreated} turnos nuevos, día {DayOfWeek}, desde {Today}",
+          doctorId, slotsCreated, dayOfWeek, today);
     }
     public async Task Update(AvailabilityModel.Request request)
     {
@@ -147,12 +162,18 @@ namespace Dsw2026Tpi.Application.Services;
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
+        _logger.LogInformation("Sobreescribiendo disponibilidad del mes actual para médico {DoctorId}", doctor.Id);
+
         await ClearCurrentMonth(doctor.Id, today);
 
         foreach (var (dayOfWeek, startTime, endTime) in parsedDays)
         {
             var rule = new AvailabilityRule(doctor.Id, today.Month, today.Year, dayOfWeek, startTime, endTime);
             await _persistence.Add(rule);
+
+            _logger.LogInformation(
+               "Disponibilidad actualizada: médico {DoctorId}, día {DayOfWeek}, horario {StartTime}-{EndTime}",
+               doctor.Id, dayOfWeek, startTime, endTime);
 
             await GenerateSlots(doctor.Id, rule.Id, dayOfWeek, startTime, endTime, today);
         }

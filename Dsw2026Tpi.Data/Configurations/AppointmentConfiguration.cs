@@ -22,5 +22,9 @@ public class AppointmentConfiguration : IEntityTypeConfiguration<Appointment>
         builder.HasOne(a => a.Patient)
             .WithMany()
             .HasForeignKey(a => a.PatientId);
+
+        builder.HasIndex(a => a.AvailabilitySlotId)
+          .IsUnique()
+          .HasFilter("[Status] = 'Booked'");
     }
 }

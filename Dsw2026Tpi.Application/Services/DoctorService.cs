@@ -18,7 +18,7 @@ public class DoctorService : IDoctorService
     public async Task<Pagination<DoctorModel.Response>> GetAll(int pageSize, int pageIndex, string? name = null)
     {
         var doctors = await _persistence.Paginate<Doctor, string>(pageSize, pageIndex,
-            d => d.IsActive && (string.IsNullOrWhiteSpace(name) || d.Name.Contains(name)),
+            d => !d.Deleted && (string.IsNullOrWhiteSpace(name) || d.Name.Contains(name)),
             x => x.Name, nameof(Doctor.Speciality));
 
         return doctors.Map(d => new DoctorModel.Response(d.Id, d.Name, d.LicenseNumber,
@@ -27,7 +27,7 @@ public class DoctorService : IDoctorService
     public async Task<IEnumerable<DoctorModel.AvailabilityResponse>> GetAvailabilities(Guid doctorId)
     {
         var doctor = await _persistence.GetById<Doctor>(doctorId);
-        if (doctor is null || !doctor.IsActive)
+        if (doctor is null || doctor.Deleted)
             throw new EntityNotFoundException(nameof(Doctor));
 
         var now = DateTime.UtcNow;
@@ -97,10 +97,10 @@ public class DoctorService : IDoctorService
     public async Task Delete(Guid id)
     {
         var doctor = await _persistence.GetById<Doctor>(id);
-        if (doctor is null || !doctor.IsActive)
+        if (doctor is null || doctor.Deleted)
             throw new EntityNotFoundException(nameof(Doctor));
 
-        doctor.Deactivate();
+        doctor.Delete();
         await _persistence.Update(doctor);
     }
     public async Task<DoctorModel.Response> Update(Guid id, DoctorModel.Request request)
@@ -108,7 +108,7 @@ public class DoctorService : IDoctorService
         Validate(request);
 
         var doctor = await _persistence.GetById<Doctor>(id);
-        if (doctor is null || !doctor.IsActive)
+        if (doctor is null || doctor.Deleted)
             throw new EntityNotFoundException(nameof(Doctor));
 
         var speciality = await _persistence.GetById<Speciality>(request.SpecialityId);

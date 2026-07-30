@@ -12,6 +12,7 @@ namespace Dsw2026Tpi.Data.Configurations
         public void Configure(EntityTypeBuilder<Patient> builder)
         {
             builder.ToTable("Patients");
+            builder.HasIndex(p => p.Dni).IsUnique();
         }
     }
 }

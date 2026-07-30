@@ -21,7 +21,9 @@ namespace Dsw2026Tpi.Data.Configurations;
             .HasForeignKey(s => s.DoctorId);
 
         builder.HasIndex(s => new { s.DoctorId, s.SlotDate, s.StartTime })
-            .IsUnique();
+    .IsUnique()
+    .HasFilter("[Deleted] = 0");
+
         builder.Property(s => s.RowVersion)
             .IsRowVersion();
     }

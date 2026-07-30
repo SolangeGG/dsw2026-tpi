@@ -8,7 +8,6 @@ namespace Dsw2026Tpi.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api")]
-[EnableRateLimiting("fixed")]
 public abstract class AppController : ControllerBase
 {
 }

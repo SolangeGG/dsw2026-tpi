@@ -18,6 +18,7 @@ public static class DependencyInjectionConfigurationExtensions
         services.AddScoped<ISpecialityService, SpecialityService>();
         services.AddScoped<IAvailabilityService, AvailabilityService>();
         services.AddScoped<IAppointmentService, AppointmentService>();
+        services.AddSingleton<IHolidayProvider, HolidayProvider>();
         return services;
     }
 }

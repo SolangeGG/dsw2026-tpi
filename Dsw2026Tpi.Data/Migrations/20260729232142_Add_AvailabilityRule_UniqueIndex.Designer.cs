@@ -4,6 +4,7 @@ using Dsw2026Tpi.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Dsw2026Tpi.Data.Migrations
 {
     [DbContext(typeof(Dsw2026TpiDbContext))]
-    partial class Dsw2026TpiDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260729232142_Add_AvailabilityRule_UniqueIndex")]
+    partial class Add_AvailabilityRule_UniqueIndex
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -56,9 +59,7 @@ namespace Dsw2026Tpi.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AvailabilitySlotId")
-                        .IsUnique()
-                        .HasFilter("[Status] = 'Booked'");
+                    b.HasIndex("AvailabilitySlotId");
 
                     b.HasIndex("PatientId");
 
@@ -149,8 +150,7 @@ namespace Dsw2026Tpi.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("DoctorId", "SlotDate", "StartTime")
-                        .IsUnique()
-                        .HasFilter("[Deleted] = 0");
+                        .IsUnique();
 
                     b.ToTable("AvailabilitySlots", (string)null);
                 });
@@ -164,7 +164,7 @@ namespace Dsw2026Tpi.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<bool>("Deleted")
+                    b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
                     b.Property<string>("LicenseNumber")
@@ -215,9 +215,6 @@ namespace Dsw2026Tpi.Data.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("Dni")
-                        .IsUnique();
 
                     b.ToTable("Patients", (string)null);
                 });
