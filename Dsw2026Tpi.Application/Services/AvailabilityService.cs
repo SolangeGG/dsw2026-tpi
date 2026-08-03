@@ -26,12 +26,13 @@ namespace Dsw2026Tpi.Application.Services;
         _holidayProvider = holidayProvider;
     }
 
-    public async Task Create(AvailabilityModel.Request request)
+    public async Task<List<AvailabilityModel.RuleResponse>> Create(AvailabilityModel.Request request)
     {
         var doctor = await ValidateAndGetDoctor(request);
         var parsedDays = ParseDays(request.Days);
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var result = new List<AvailabilityModel.RuleResponse>();
 
         foreach (var (dayOfWeek, startTime, endTime) in parsedDays)
         {
@@ -50,8 +51,22 @@ namespace Dsw2026Tpi.Application.Services;
                 doctor.Id, dayOfWeek, startTime, endTime);
 
             await GenerateSlots(doctor.Id, rule.Id, dayOfWeek, startTime, endTime, today);
+            result.Add(new AvailabilityModel.RuleResponse(
+           rule.Id, ToSpanishDay(dayOfWeek), startTime.ToString(@"hh\:mm"), endTime.ToString(@"hh\:mm")));
         }
+        return result;
     }
+    private static string ToSpanishDay(DayOfWeek day) => day switch
+    {
+        DayOfWeek.Monday => "LUNES",
+        DayOfWeek.Tuesday => "MARTES",
+        DayOfWeek.Wednesday => "MIÉRCOLES",
+        DayOfWeek.Thursday => "JUEVES",
+        DayOfWeek.Friday => "VIERNES",
+        DayOfWeek.Saturday => "SÁBADO",
+        DayOfWeek.Sunday => "DOMINGO",
+        _ => throw new ArgumentOutOfRangeException(nameof(day))
+    };
     private async Task<Doctor> ValidateAndGetDoctor(AvailabilityModel.Request request)
     {
         var doctor = await _persistence.GetById<Doctor>(request.DoctorId);
@@ -155,12 +170,13 @@ namespace Dsw2026Tpi.Application.Services;
           "Turnos generados para médico {DoctorId}: {SlotsCreated} turnos nuevos, día {DayOfWeek}, desde {Today}",
           doctorId, slotsCreated, dayOfWeek, today);
     }
-    public async Task Update(AvailabilityModel.Request request)
+    public async Task<List<AvailabilityModel.RuleResponse>> Update(AvailabilityModel.Request request)
     {
         var doctor = await ValidateAndGetDoctor(request);
         var parsedDays = ParseDays(request.Days);
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var result = new List<AvailabilityModel.RuleResponse>();
 
         _logger.LogInformation("Sobreescribiendo disponibilidad del mes actual para médico {DoctorId}", doctor.Id);
 
@@ -176,7 +192,10 @@ namespace Dsw2026Tpi.Application.Services;
                doctor.Id, dayOfWeek, startTime, endTime);
 
             await GenerateSlots(doctor.Id, rule.Id, dayOfWeek, startTime, endTime, today);
+            result.Add(new AvailabilityModel.RuleResponse(
+            rule.Id, ToSpanishDay(dayOfWeek), startTime.ToString(@"hh\:mm"), endTime.ToString(@"hh\:mm")));
         }
+        return result;
     }
 
     private async Task ClearCurrentMonth(Guid doctorId, DateOnly today)

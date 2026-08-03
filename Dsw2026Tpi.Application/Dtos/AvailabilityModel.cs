@@ -8,6 +8,7 @@ namespace Dsw2026Tpi.Application.Dtos;
     {
     public record DayRequest(string Day, string StartTime, string EndTime);
     public record Request(Guid DoctorId, List<DayRequest> Days);
-
+    public record RuleResponse(Guid Id, string Day, string StartTime, string EndTime);
     }
+
 

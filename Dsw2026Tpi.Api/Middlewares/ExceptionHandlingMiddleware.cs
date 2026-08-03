@@ -44,8 +44,9 @@ public class ExceptionHandlingMiddleware
         {
             ValidationException => HttpStatusCode.BadRequest,
             EntityNotFoundException => HttpStatusCode.NotFound,
-            ConflictException or AuthenticationException => HttpStatusCode.Conflict,
-            AuthorizationException => HttpStatusCode.Unauthorized,
+            ConflictException => HttpStatusCode.Conflict,
+            AuthenticationException => HttpStatusCode.Unauthorized,
+            AuthorizationException => HttpStatusCode.Forbidden,
             _ => HttpStatusCode.InternalServerError,
         };
         var result = JsonSerializer.Serialize(error, JsonOptions);

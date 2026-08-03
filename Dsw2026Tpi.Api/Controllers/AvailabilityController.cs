@@ -23,16 +23,16 @@ public class AvailabilityController : AppController
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Create([FromBody] AvailabilityModel.Request request)
     {
-        await _service.Create(request);
-        return StatusCode(StatusCodes.Status201Created);
+        var result = await _service.Create(request);
+        return StatusCode(StatusCodes.Status201Created, result);
     }
     [HttpPut]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Update([FromBody] AvailabilityModel.Request request)
     {
-        await _service.Update(request);
-        return Ok();
+        var result = await _service.Update(request);
+        return Ok(result);
     }
 }
 

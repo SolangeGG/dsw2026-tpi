@@ -51,14 +51,6 @@ namespace Dsw2026Tpi.Application.Services;
         speciality.Delete();
         await _persistence.Update(speciality);
     }
-    private async Task EnsureNameIsUnique(string name)
-    {
-        var existing = await _persistence.First<Speciality>(
-            s => s.Deleted && s.Name.ToLower() == name.ToLower());
-
-        if (existing is not null)
-            throw new ConflictException(nameof(ErrorCodes.SPECIALITY_CONFLICT), ErrorCodes.SPECIALITY_CONFLICT);
-    }
 
     private static void Validate(SpecialityModel.Request request)
     {
