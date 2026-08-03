@@ -23,6 +23,7 @@ namespace Dsw2026Tpi.Tests.Services
             _service = new SpecialityService(_persistence);
         }
 
+        [Fact]
         public async Task Crear_CuandoLosDatosSonValidos_EntoncesDevuelveLaEspecialidadCreada()
         {
             //Arrange
