@@ -46,12 +46,12 @@ public class DoctorController : AppController
     }
     [HttpDelete("{id}")]
     [Authorize(Policy = Policies.AdminPolicy)]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _service.Delete(id);
-        return NoContent();
+        return Ok("ok");
     }
     [HttpPut("{id}")]
     [Authorize(Policy = Policies.AdminPolicy)]

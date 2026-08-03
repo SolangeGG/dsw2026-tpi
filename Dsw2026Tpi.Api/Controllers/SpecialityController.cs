@@ -40,12 +40,12 @@ namespace Dsw2026Tpi.Api.Controllers;
     }
 
     [HttpDelete("{id}")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _service.Delete(id);
-        return NoContent();
+        return Ok("ok");
     }
     [HttpPut("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK)]

@@ -55,7 +55,7 @@ public class AuthenticationService : IAuthenticationService
 
         return new LoginAdminModel.Response(
             token,
-            role
+            role?.ToUpperInvariant()
         );
     }
 
@@ -72,14 +72,14 @@ public class AuthenticationService : IAuthenticationService
 
         if (patient is null)
         {
-            patient = new Patient(request.Email, request.Dni, request.Email);
+            patient = new Patient(request.Email, request.Dni, string.Empty);
             await _persistence.Add(patient);
             _logger.LogInformation("Paciente registrado automáticamente: {Email}", request.Email);
         }
 
         var token = _jwtService.GenerateToken(patient.Email, Roles.Patient);
 
-        return new LoginPatientModel.Response(token, Roles.Patient);
+        return new LoginPatientModel.Response(token, Roles.Patient.ToUpperInvariant());
     }
 
     public async Task<RegisterModel.Response> Register(RegisterModel.Request request)

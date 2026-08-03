@@ -17,12 +17,16 @@ public class DoctorService : IDoctorService
 
     public async Task<Pagination<DoctorModel.Response>> GetAll(int pageSize, int pageIndex, string? name = null)
     {
+        if (!string.IsNullOrWhiteSpace(name) && name.Length is < 3 or > 100)
+        {
+            throw new ValidationException().WithDetail(nameof(name), "invalid_length");
+        }
         var doctors = await _persistence.Paginate<Doctor, string>(pageSize, pageIndex,
             d => !d.Deleted && (string.IsNullOrWhiteSpace(name) || d.Name.Contains(name)),
             x => x.Name, nameof(Doctor.Speciality));
 
         return doctors.Map(d => new DoctorModel.Response(d.Id, d.Name, d.LicenseNumber,
-            new DoctorModel.SpecialityDto(d.Speciality?.Id, d.Speciality?.Name)));
+            new DoctorModel.SpecialtyDto(d.Speciality?.Id, d.Speciality?.Name)));
     }
     public async Task<IEnumerable<DoctorModel.AvailabilityResponse>> GetAvailabilities(Guid doctorId)
     {
@@ -59,15 +63,15 @@ public class DoctorService : IDoctorService
     {
         Validate(request);
 
-        var speciality = await _persistence.GetById<Speciality>(request.SpecialityId);
+        var speciality = await _persistence.GetById<Speciality>(request.SpecialtyId);
         if (speciality is null || speciality.Deleted)
-            throw new ValidationException().WithDetail(nameof(request.SpecialityId), "not_found");
+            throw new ValidationException().WithDetail(nameof(request.SpecialtyId), "not_found");
 
         var doctor = new Doctor(request.Name, request.LicenseNumber, speciality);
         await _persistence.Add(doctor);
 
         return new DoctorModel.Response(doctor.Id, doctor.Name, doctor.LicenseNumber,
-            new DoctorModel.SpecialityDto(speciality.Id, speciality.Name));
+            new DoctorModel.SpecialtyDto(speciality.Id, speciality.Name));
     }
 
     private static void Validate(DoctorModel.Request request)
@@ -111,14 +115,14 @@ public class DoctorService : IDoctorService
         if (doctor is null || doctor.Deleted)
             throw new EntityNotFoundException(nameof(Doctor));
 
-        var speciality = await _persistence.GetById<Speciality>(request.SpecialityId);
+        var speciality = await _persistence.GetById<Speciality>(request.SpecialtyId);
         if (speciality is null || speciality.Deleted)
-            throw new ValidationException().WithDetail(nameof(request.SpecialityId), "not_found");
+            throw new ValidationException().WithDetail(nameof(request.SpecialtyId), "not_found");
 
         doctor.Update(request.Name, request.LicenseNumber, speciality);
         await _persistence.Update(doctor);
 
         return new DoctorModel.Response(doctor.Id, doctor.Name, doctor.LicenseNumber,
-            new DoctorModel.SpecialityDto(speciality.Id, speciality.Name));
+            new DoctorModel.SpecialtyDto(speciality.Id, speciality.Name));
     }
 }

@@ -35,13 +35,13 @@ public class AppointmentService : IAppointmentService
         if (patient is null)
             throw new ValidationException().WithDetail("patient.dni", "not_found");
 
-        var slot = await _persistence.GetById<AvailabilitySlot>(request.AvailabilityId);
+        var slot = await _persistence.GetById<AvailabilitySlot>(request.AvailabilitySlotId);
         if (slot is null || slot.Deleted || slot.DoctorId != doctor.Id)
-            throw new ValidationException().WithDetail(nameof(request.AvailabilityId), "not_found");
+            throw new ValidationException().WithDetail(nameof(request.AvailabilitySlotId), "not_found");
 
         var slotDateTime = slot.SlotDate.ToDateTime(TimeOnly.FromTimeSpan(slot.StartTime));
         if (slotDateTime < DateTime.Now)
-            throw new ValidationException().WithDetail(nameof(request.AvailabilityId), "past_slot");
+            throw new ValidationException().WithDetail(nameof(request.AvailabilitySlotId), "past_slot");
 
         if (slot.Status != SlotStatus.Available)
         {
@@ -83,9 +83,9 @@ public class AppointmentService : IAppointmentService
         var exception = new ValidationException();
         var hasErrors = false;
 
-        if (request.AvailabilityId == Guid.Empty)
+        if (request.AvailabilitySlotId == Guid.Empty)
         {
-            exception.WithDetail(nameof(request.AvailabilityId), "required");
+            exception.WithDetail(nameof(request.AvailabilitySlotId), "required");
             hasErrors = true;
         }
 
@@ -163,18 +163,18 @@ public class AppointmentService : IAppointmentService
             .OrderBy(a => a.AvailabilitySlot!.StartTime);
 
         return ordered.Select(a => new AppointmentModel.AdminResponse(
-            a.Id,
-            a.AvailabilitySlot!.Doctor!.Name,
-            a.AvailabilitySlot.Doctor.Speciality?.Name,
-            a.Patient!.Dni,
-            a.Patient.Name,
-            a.AvailabilitySlot.SlotDate.ToString("yyyy-MM-dd"),
-            a.AvailabilitySlot.StartTime.ToString(@"hh\:mm"),
-            a.AvailabilitySlot.EndTime.ToString(@"hh\:mm"),
-            a.Reason,
-            a.Status.ToString().ToUpperInvariant()
-        )).ToList();
+    a.Id,
+    a.Status.ToString().ToUpperInvariant(),
+    new AppointmentModel.PatientDto(a.Patient!.Dni, a.Patient.Name),
+    new AppointmentModel.DoctorDto(
+        a.AvailabilitySlot!.Doctor!.Id,
+        a.AvailabilitySlot.Doctor.Name,
+        a.AvailabilitySlot.Doctor.Speciality is null ? null :
+            new AppointmentModel.SpecialtyDto(a.AvailabilitySlot.Doctor.Speciality.Id, a.AvailabilitySlot.Doctor.Speciality.Name)
+    )
+)).ToList();
     }
+    
     public async Task<Pagination<AppointmentModel.AdminResponse>> Search(
     Guid? specialtyId, Guid? doctorId, long? dni, string? date, int pageSize, int pageIndex)
     {
@@ -196,16 +196,16 @@ public class AppointmentService : IAppointmentService
             "AvailabilitySlot.Doctor.Speciality", "Patient");
 
         return appointments.Map(a => new AppointmentModel.AdminResponse(
-            a.Id,
-            a.AvailabilitySlot!.Doctor!.Name,
-            a.AvailabilitySlot.Doctor.Speciality?.Name,
-            a.Patient!.Dni,
-            a.Patient.Name,
-            a.AvailabilitySlot.SlotDate.ToString("yyyy-MM-dd"),
-            a.AvailabilitySlot.StartTime.ToString(@"hh\:mm"),
-            a.AvailabilitySlot.EndTime.ToString(@"hh\:mm"),
-            a.Reason,
-            a.Status.ToString().ToUpperInvariant()
-        ));
+    a.Id,
+    a.Status.ToString().ToUpperInvariant(),
+    new AppointmentModel.PatientDto(a.Patient!.Dni, a.Patient.Name),
+    new AppointmentModel.DoctorDto(
+        a.AvailabilitySlot!.Doctor!.Id,
+        a.AvailabilitySlot.Doctor.Name,
+        a.AvailabilitySlot.Doctor.Speciality is null ? null :
+            new AppointmentModel.SpecialtyDto(a.AvailabilitySlot.Doctor.Speciality.Id, a.AvailabilitySlot.Doctor.Speciality.Name)
+    )
+));
     }
 }
+
